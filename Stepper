@@ -1,20 +1,14 @@
-// ConstantSpeed.pde
-// -*- mode: C++ -*-
-//
-// Shows how to run AccelStepper in the simplest,
-// fixed speed mode with no accelerations
-// Requires the AFMotor library (https://github.com/adafruit/Adafruit-Motor-Shield-library)
-// And AccelStepper with AFMotor support (https://github.com/adafruit/AccelStepper)
-// Public domain!
-
 #include <AccelStepper.h>
 #include <AFMotor.h>
+#include <NewPing.h>
 
-AF_Stepper motor1(2048, 1);
-AF_Stepper motor2(2048, 2);
+NewPing sonar_2(A0,A1);
+long previousMillis = 0;        
+long interval = 1000;          
+bool m = false;
+AF_Stepper motor1(4096, 1);
+AF_Stepper motor2(4096, 2);
 
-
-// you can change these to DOUBLE or INTERLEAVE or MICROSTEP!
 void forwardstep1() {  
   motor1.onestep(FORWARD, SINGLE);
 }
@@ -28,20 +22,41 @@ void backwardstep2() {
   motor2.onestep(BACKWARD, SINGLE);
 }
 
-AccelStepper stepper1(forwardstep1, backwardstep1); // use functions to step
-AccelStepper stepper2(backwardstep2, forwardstep2); // use functions to step
+int distance;
+AccelStepper stepper1(forwardstep1,backwardstep1); // use functions to step
+AccelStepper stepper2(forwardstep2,backwardstep2); 
 
 void setup()
 {  
-   Serial.begin(9600);           // set up Serial library at 9600 bps
-   Serial.println("Stepper test!");
-  
-   stepper1.setSpeed(650);
-   stepper2.setSpeed(650);  
+   stepper1.setSpeed(650);  
+   stepper2.setSpeed(650);
 }
 
 void loop()
 {  
-   stepper1.runSpeed();
-   stepper2.runSpeed();
+   unsigned long currentMillis = millis();
+ 
+  if(currentMillis - previousMillis > interval) {
+    previousMillis = currentMillis;   
+    distance = sonar_2.ping_cm();
+    m = true;
+  }
+ if(m==true){
+  if(distance < 20 && distance > 5){
+   stepper1.setMaxSpeed(650.0);
+   stepper1.setAcceleration(1000.0);
+   stepper1.moveTo(stepper1.currentPosition()+ 2500);
+   while(stepper1.distanceToGo() != 0){
+   stepper1.run();
+   }
+   }
+  else
+    m = false; 
+  }
+  if(m== false){
+    stepper1.setSpeed(650);  
+    stepper2.setSpeed(650);
+    stepper1.runSpeed();
+    stepper2.runSpeed();
+    }
 }
